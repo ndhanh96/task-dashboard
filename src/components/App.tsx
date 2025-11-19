@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Typography, Space } from "antd";
+import { Typography, Space, Row, Col, Card } from "antd";
 import TaskTable from "@/components/TaskTable";
 import NewTaskModal from "@/components/NewTaskModal";
 import { Task } from "@/lib/tasks";
@@ -10,22 +10,24 @@ const { Title } = Typography;
 
 function App({ myTasks }: { myTasks: Task[] }) {
   return (
-    <main style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
+    <main className="container">
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Title level={2} style={{ margin: 0 }}>
-            My Tasks
-          </Title>
-          <NewTaskModal />
-        </div>
+        <Row align="middle" justify="space-between" className="header">
+          <Col xs={24} sm={12}>
+            <Title level={2} style={{ margin: 0 }}>
+              My Tasks
+            </Title>
+          </Col>
+          <Col className="actionsCol">
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <NewTaskModal />
+            </div>
+          </Col>
+        </Row>
 
-        <TaskTable tasks={myTasks} />
+        <Card styles={{ body: { padding: "0.5rem" } }}>
+          <TaskTable tasks={myTasks} />
+        </Card>
       </Space>
     </main>
   );

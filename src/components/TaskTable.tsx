@@ -68,14 +68,16 @@ export default function TaskTable({ tasks }: TaskTableProps) {
   }, [tasks]);
 
   return (
-    <Table
-      dataSource={tasks}
-      columns={columns}
-      rowKey={(record) => {
-        return record.id.toString();
-      }} // Unique key for rows
-      pagination={false} // No paging for simplicity
-      loading={loading}
-    />
+    <div className="tableWrapper">
+      <Table
+        dataSource={tasks}
+        columns={columns}
+        rowKey={(record) => {
+          return record.id.toString();
+        }} // Unique key for rows
+        pagination={false} // No paging for simplicity
+        loading={loading}
+      />
+    </div>
   );
 }
