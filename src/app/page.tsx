@@ -18,6 +18,7 @@ export default function Home() {
         if (!res.statusText) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
+
         setTasks((t) => [...t, ...res.data]);
       } catch (error) {
         throw error;

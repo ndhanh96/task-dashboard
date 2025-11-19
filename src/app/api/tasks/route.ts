@@ -4,14 +4,22 @@ import { addTask, deleteTask, getAllTasks, updateTask } from "@/lib/db";
 import { Task } from "@/lib/tasks";
 
 export async function GET() {
-  const tasks = getAllTasks();
-  return NextResponse.json(tasks);
+  try {
+    const tasks = await getAllTasks(); // Await the promise—JS/TS async mastery!
+    return NextResponse.json(tasks);
+  } catch (error) {
+    console.error("GET error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const id = addTask(body);
+    const body = await req.json(); // Already awaited—good
+    const id = await addTask(body); // Await here: Resolves to number
     return NextResponse.json({ id }, { status: 201 });
   } catch (error) {
     console.error("POST error:", error);
@@ -23,13 +31,29 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
-  const body = (await req.json()) as { id: number } & Partial<Task>;
-  updateTask(body.id, body);
-  return NextResponse.json({ success: true, body });
+  try {
+    const body = (await req.json()) as { id: number } & Partial<Task>;
+    await updateTask(body.id, body); // Await the void Promise—ensures completion
+    return NextResponse.json({ success: true, body });
+  } catch (error) {
+    console.error("PUT error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(req: NextRequest) {
-  const { id } = (await req.json()) as { id: number };
-  deleteTask(id);
-  return NextResponse.json({ success: true });
+  try {
+    const { id } = (await req.json()) as { id: number };
+    await deleteTask(id); // Await for deletion's promise
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
 }

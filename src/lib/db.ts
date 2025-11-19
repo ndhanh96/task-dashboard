@@ -1,16 +1,14 @@
 // src/lib/db.ts
-import { Database } from "bun:sqlite"; // Bun's native elixir—faster, no native module woes!
+import { createClient } from "@libsql/client"; // Turso's async herald—serverless, distributed!
 import { Task, TaskStatus } from "./tasks";
 
-const db = new Database("tasks.db", {
-  create: true,
-  strict: true,
-  safeIntegers: true,
-}); // Create if absent, strict params, safe bigints
-db.run("PRAGMA journal_mode = WAL;"); // WAL for concurrency supremacy
+const client = createClient({
+  url: process.env.TURSO_DATABASE_URL!,
+  authToken: process.env.TURSO_AUTH_TOKEN!,
+});
 
-// Create table if not exists - like MySQL schema
-db.run(`
+// Create table if not exists - like MySQL schema (async invocation)
+await client.execute(`
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -20,93 +18,111 @@ db.run(`
   )
 `);
 
-// Typed CRUD functions
-export function getAllTasks(): Task[] {
-  const stmt = db.query("SELECT * FROM tasks ORDER BY dueDate DESC"); // query for caching bliss
-  const rows = stmt.all() as Task[];
-  return rows.map((row) => ({
-    id: Number(row.id),
-    title: row.title as string,
-    description: row.description as string | undefined,
-    status: row.status as TaskStatus,
-    dueDate: row.dueDate as string,
+// Typed CRUD functions—now async for Turso's promise realm
+export async function getAllTasks(): Promise<Task[]> {
+  const res = await client.execute("SELECT * FROM tasks ORDER BY dueDate DESC");
+  return res.rows.map((row) => ({
+    id: Number(row[0]), // id (number/bigint-safe cast)
+    title: row[1] as string,
+    description: (row[2] ?? undefined) as string | undefined,
+    status: row[3] as TaskStatus,
+    dueDate: (row[4] ?? undefined) as string,
   }));
 }
 
-export function addTask(task: Omit<Task, "id">): number {
-  const stmt = db.query(
-    "INSERT INTO tasks (title, description, status, dueDate) VALUES (?, ?, ?, ?)"
-  ); // query caches for repeated inserts
-  const info = stmt.run(
-    task.title,
-    task.description || null,
-    task.status,
-    task.dueDate ? task.dueDate : null
-  );
-  return Number(info.lastInsertRowid); // Cast to number—safe with your schema
+export async function addTask(task: Omit<Task, "id">): Promise<number> {
+  const res = await client.execute({
+    sql: "INSERT INTO tasks (title, description, status, dueDate) VALUES (?, ?, ?, ?)",
+    args: [
+      task.title,
+      task.description || null,
+      task.status,
+      task.dueDate ? task.dueDate : null,
+    ],
+  });
+  return Number(res.lastInsertRowid!); // Cast to number—your auto-increment ally
 }
 
-export function updateTask(id: number, task: Partial<Task>): void {
-  const fields = [];
-  const values = [];
-  const currentTaskStmt = db.query("SELECT * FROM tasks WHERE id = ?"); // Cached for frequent edits
-  const currentTask = currentTaskStmt.get(id) as Task | undefined;
+export async function updateTask(
+  id: number,
+  task: Partial<Task>
+): Promise<void> {
+  const fields: string[] = [];
+  const args = [];
+  const currentRes = await client.execute({
+    sql: "SELECT * FROM tasks WHERE id = ?",
+    args: [id],
+  });
+  const currentTask = currentRes.rows[0] as unknown as
+    | [number, string, string | null, string, string | null]
+    | undefined;
   if (!currentTask) {
     throw new Error(`Task with id ${id} not found`);
   }
-  if (task.title !== undefined && task.title !== currentTask.title) {
+  const current = {
+    id: Number(currentTask[0]),
+    title: currentTask[1],
+    description: currentTask[2] ?? undefined,
+    status: currentTask[3] as TaskStatus,
+    dueDate: currentTask[4] ?? undefined,
+  };
+
+  if (task.title !== undefined && task.title !== current.title) {
     fields.push("title = ?");
-    values.push(task.title);
+    args.push(task.title);
   }
   if (
     task.description !== undefined &&
-    task.description !== currentTask.description
+    task.description !== current.description
   ) {
     fields.push("description = ?");
-    values.push(task.description);
+    args.push(task.description);
   }
-  if (task.status !== undefined && task.status !== currentTask.status) {
+  if (task.status !== undefined && task.status !== current.status) {
     fields.push("status = ?");
-    values.push(task.status);
+    args.push(task.status);
   }
-  if (task.dueDate !== undefined && task.dueDate !== currentTask.dueDate) {
+  if (task.dueDate !== undefined && task.dueDate !== current.dueDate) {
     fields.push("dueDate = ?");
-    values.push(task.dueDate ? task.dueDate : null);
+    args.push(task.dueDate);
   }
   if (fields.length === 0) return;
 
-  const stmt = db.query(`UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`); // Dynamic, but Bun handles it swiftly
-  stmt.run(...values, id);
+  await client.execute({
+    sql: `UPDATE tasks SET ${fields.join(", ")} WHERE id = ?`,
+    args: [...args, id],
+  });
 }
 
-export function deleteTask(id: number): void {
-  const stmt = db.query("DELETE FROM tasks WHERE id = ?"); // Cached deletions
-  stmt.run(id);
+export async function deleteTask(id: number): Promise<void> {
+  await client.execute({
+    sql: "DELETE FROM tasks WHERE id = ?",
+    args: [id],
+  });
 }
 
-// Init: Call once to ensure DB ready
-getAllTasks(); // Triggers create if needed
+// Init: Ensure DB ready async
+await getAllTasks(); // Triggers any lazy schema, fetches for peace
 
-// Add to bottom of src/lib/db.ts
-
-function seedMockData() {
-  const countStmt = db.query("SELECT COUNT(*) as count FROM tasks"); // Cached count
-  const { count } = countStmt.get() as { count: number };
+// Seed on load—async for Turso's grace
+async function seedMockData() {
+  const countRes = await client.execute("SELECT COUNT(*) as count FROM tasks");
+  const count = Number(countRes.rows[0][0]); // Safe number cast
 
   if (count === 0) {
-    addTask({
+    await addTask({
       title: "Buy milk",
       description: "Get whole milk from the store",
       status: TaskStatus.PENDING,
       dueDate: new Date("2025-11-15").toISOString(),
     });
-    addTask({
+    await addTask({
       title: "Code review",
       description: "Review pull request #42",
       status: TaskStatus.IN_PROGRESS,
       dueDate: new Date("2025-11-13").toISOString(),
     });
-    addTask({
+    await addTask({
       title: "Deploy app",
       description: "Push to Vercel",
       status: TaskStatus.COMPLETED,
@@ -115,5 +131,5 @@ function seedMockData() {
   }
 }
 
-// Seed on load
-seedMockData();
+// Await the seed—top-level for module init
+await seedMockData();

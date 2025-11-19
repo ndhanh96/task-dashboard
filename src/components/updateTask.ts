@@ -6,7 +6,6 @@ export default async function updateTask(
 ) {
   try {
     const res = await axios.put("/api/tasks", { ...payload });
-    console.log(res);
     return res;
   } catch (err) {
     throw err;
