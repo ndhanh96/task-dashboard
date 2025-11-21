@@ -1,13 +1,18 @@
 "use client";
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { Button, DatePicker, Form, Input, Modal, Select } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { addNewTask } from "./addNewTask";
 
 // For TypeScript: Define the shape of your form values
 
-function NewTaskModal() {
-  const [isPending, startTransition] = useTransition();
+function NewTaskModal({
+  isPending,
+  startTransition,
+}: {
+  isPending: boolean;
+  startTransition: React.TransitionStartFunction;
+}) {
   const [open, setOpen] = useState(false);
   // const [confirmLoading, setConfirmLoading] = useState(false);
   const [NewTaskModalForm] = Form.useForm();
@@ -17,7 +22,6 @@ function NewTaskModal() {
   };
 
   const handleOk = async () => {
-    // setConfirmLoading(true);
     try {
       const values = await NewTaskModalForm.validateFields();
       startTransition(async () => {

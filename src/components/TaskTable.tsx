@@ -9,9 +9,10 @@ import DeleteTask from "./DeleteTask";
 
 interface TaskTableProps {
   tasks: Task[];
+  isAddingNewTask: boolean;
 }
 
-export default function TaskTable({ tasks }: TaskTableProps) {
+export default function TaskTable({ tasks, isAddingNewTask }: TaskTableProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const columns = [
     {
@@ -76,7 +77,7 @@ export default function TaskTable({ tasks }: TaskTableProps) {
           return record.id.toString();
         }} // Unique key for rows
         pagination={false} // No paging for simplicity
-        loading={loading}
+        loading={loading || isAddingNewTask}
       />
     </div>
   );

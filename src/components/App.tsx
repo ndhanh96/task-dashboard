@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useTransition } from "react";
 import { Typography, Space, Row, Col, Card } from "antd";
 import TaskTable from "@/components/TaskTable";
 import NewTaskModal from "@/components/NewTaskModal";
@@ -9,6 +9,7 @@ import "@ant-design/v5-patch-for-react-19";
 const { Title } = Typography;
 
 function App({ myTasks }: { myTasks: Task[] }) {
+  const [isPending, startTransition] = useTransition();
   return (
     <main className="container">
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -20,13 +21,16 @@ function App({ myTasks }: { myTasks: Task[] }) {
           </Col>
           <Col className="actionsCol">
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <NewTaskModal />
+              <NewTaskModal
+                startTransition={startTransition}
+                isPending={isPending}
+              />
             </div>
           </Col>
         </Row>
 
         <Card styles={{ body: { padding: "0.5rem" } }}>
-          <TaskTable tasks={myTasks} />
+          <TaskTable tasks={myTasks} isAddingNewTask={isPending} />
         </Card>
       </Space>
     </main>
