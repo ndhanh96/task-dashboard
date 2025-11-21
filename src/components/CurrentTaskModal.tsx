@@ -1,14 +1,26 @@
-import React, { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import { Button, DatePicker, Form, Input, Modal, Select } from "antd";
 import { Task } from "@/lib/tasks";
 import dayjs from "dayjs";
 import { updateTaskAction } from "@/lib/db";
 
-function CurrentTaskModal({ id, title, description, status, dueDate }: Task) {
+interface CurrentTaskModalProps extends Task {
+  startTransition: React.TransitionStartFunction;
+  isPending: boolean;
+}
+
+function CurrentTaskModal({
+  id,
+  title,
+  description,
+  status,
+  dueDate,
+  startTransition,
+  isPending,
+}: CurrentTaskModalProps) {
   const [open, setOpen] = useState(false);
   const [CurrentTaskModalForm] = Form.useForm();
-  const [isPending, startTransition] = useTransition();
 
   const showModal = () => {
     setOpen(true);
@@ -16,10 +28,13 @@ function CurrentTaskModal({ id, title, description, status, dueDate }: Task) {
 
   const handleOk = async () => {
     try {
-      const values = await CurrentTaskModalForm.validateFields();
+      const values: Task = await CurrentTaskModalForm.validateFields();
       startTransition(async () => {
         try {
-          await updateTaskAction(id, values); // Mutates + revalidates
+          await updateTaskAction(id, {
+            ...values,
+            dueDate: new Date(values.dueDate).toISOString(),
+          }); // Mutates + revalidates
           CurrentTaskModalForm.resetFields();
         } catch (error) {
           console.log("Update failed:", error);

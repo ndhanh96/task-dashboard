@@ -1,10 +1,14 @@
 import { Button } from "antd";
 import { useRouter } from "next/navigation";
 import { deleteTask } from "@/lib/db";
-import { useTransition } from "react";
 
-function DeleteTask({ id }: { id: number }) {
-  const [isPending, startTransition] = useTransition();
+interface DeleteTaskProps {
+  id: number;
+  startTransition: React.TransitionStartFunction;
+  isPending: boolean;
+}
+
+function DeleteTask({ id, startTransition, isPending }: DeleteTaskProps) {
   const router = useRouter();
   const handleDelete = async () => {
     startTransition(async () => {

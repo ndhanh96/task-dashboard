@@ -9,10 +9,15 @@ import DeleteTask from "./DeleteTask";
 
 interface TaskTableProps {
   tasks: Task[];
-  isAddingNewTask: boolean;
+  isPending: boolean;
+  startTransition: React.TransitionStartFunction;
 }
 
-export default function TaskTable({ tasks, isAddingNewTask }: TaskTableProps) {
+export default function TaskTable({
+  tasks,
+  isPending,
+  startTransition,
+}: TaskTableProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const columns = [
     {
@@ -57,8 +62,16 @@ export default function TaskTable({ tasks, isAddingNewTask }: TaskTableProps) {
       key: "actions",
       render: (_: unknown, record: Task) => (
         <>
-          <CurrentTaskModal {...record} />
-          <DeleteTask id={record.id} />
+          <CurrentTaskModal
+            {...record}
+            startTransition={startTransition}
+            isPending={isPending}
+          />
+          <DeleteTask
+            id={record.id}
+            startTransition={startTransition}
+            isPending={isPending}
+          />
         </>
       ),
     },
@@ -77,7 +90,7 @@ export default function TaskTable({ tasks, isAddingNewTask }: TaskTableProps) {
           return record.id.toString();
         }} // Unique key for rows
         pagination={false} // No paging for simplicity
-        loading={loading || isAddingNewTask}
+        loading={loading || isPending}
       />
     </div>
   );
